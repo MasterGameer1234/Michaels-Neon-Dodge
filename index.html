@@ -2,313 +2,176 @@
 <html>
 <head>
 <title>Neon Dodge — By Michael</title>
-
+<meta charset="UTF-8">
 <style>
-    :root {
-        --neon1: #ffb300;
-        --neon2: #ff6f00;
-        --player: #00eaff;
-        --bg1: #000428;
-        --bg2: #004e92;
-    }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        user-select: none;
-    }
-
-    body {
-        background: #000;
-        overflow: hidden;
-        font-family: "Orbitron", Arial, sans-serif;
-    }
-
-    /* ⬛ FULLSCREEN CANVAS */
-    canvas {
-        display: block;
-        width: 100vw;
-        height: 100vh;
-        background: linear-gradient(135deg, var(--bg1), var(--bg2));
-        border: 8px solid var(--neon1);
-        box-shadow:
-            0 0 25px var(--neon1),
-            inset 0 0 20px var(--neon2);
-    }
-
-    /* 🎛 CENTER MENU */
-    #menu {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        color: white;
-        text-shadow: 0 0 10px var(--neon1);
-        animation: fadein .8s ease-out;
-    }
-
-    @keyframes fadein {
-        from { opacity: 0; transform: translate(-50%, -45%); }
-        to   { opacity: 1; transform: translate(-50%, -50%); }
-    }
-
-    h1 {
-        font-size: 60px;
-        letter-spacing: 4px;
-        margin-bottom: 10px;
-        color: var(--neon1);
-        text-shadow:
-            0 0 10px var(--neon1),
-            0 0 20px var(--neon2),
-            0 0 40px var(--neon1);
-    }
- h2 {
-        font-size: 30px;
-        letter-spacing: 4px;
-        margin-bottom: 70px;
-        color: var(--neon1);
-        text-shadow:
-            0 0 10px var(--neon1),
-            0 0 20px var(--neon2),
-            0 0 30px var(--neon1);
-    }
-
-    h3 {
-        margin-bottom: 20px;
-        color: #fff;
-        font-size: 30px;
-    }
-
-    button {
-        width: 200px;
-        padding: 14px 18px;
-        margin: 10px;
-        font-size: 18px;
-        font-weight: bold;
-        border: none;
-        border-radius: 8px;
-
-        color: #000;
-        background: var(--neon1);
-
-        cursor: pointer;
-        transition: 0.2s;
-        box-shadow: 0 0 18px var(--neon1);
-    }
-
-    button:hover {
-        background: var(--neon2);
-        box-shadow: 0 0 25px var(--neon2);
-        transform: scale(1.08);
-    }
+:root {--neon1:#ffb300;--neon2:#ff6f00;--player:#00eaff;--bg1:#000428;--bg2:#004e92;}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+body{background:#000;overflow:hidden;font-family:"Orbitron",Arial,sans-serif;}
+canvas{display:block;width:100vw;height:100vh;background:linear-gradient(135deg,var(--bg1),var(--bg2));border:8px solid var(--neon1);box-shadow:0 0 25px var(--neon1), inset 0 0 20px var(--neon2);}
+#menu,#skinsPanel,#achievementPopup{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:white;text-shadow:0 0 10px var(--neon1);animation:fadein .8s ease-out;}
+@keyframes fadein{from{opacity:0;transform:translate(-50%,-45%);} to{opacity:1;transform:translate(-50%,-50%);}}
+h1{font-size:60px;letter-spacing:4px;margin-bottom:10px;color:var(--neon1);text-shadow:0 0 10px var(--neon1),0 0 20px var(--neon2),0 0 40px var(--neon1);}
+h2{font-size:30px;letter-spacing:4px;margin-bottom:70px;color:var(--neon1);text-shadow:0 0 10px var(--neon1),0 0 20px var(--neon2),0 0 30px var(--neon1);}
+h3{margin-bottom:20px;color:#fff;font-size:30px;}
+button{width:200px;padding:14px 18px;margin:10px;font-size:18px;font-weight:bold;border:none;border-radius:8px;color:#000;background:var(--neon1);cursor:pointer;transition:.2s;box-shadow:0 0 18px var(--neon1);}
+button:hover{background:var(--neon2);box-shadow:0 0 25px var(--neon2);transform:scale(1.08);}
+input{padding:10px;font-size:16px;border-radius:6px;border:none;margin-bottom:10px;text-align:center;}
+#profile{margin-bottom:20px;}
+#achievementPopup{display:none;font-size:24px;background:rgba(0,0,0,0.8);padding:20px;border:2px solid var(--neon1);border-radius:12px;}
 </style>
 </head>
-
 <body>
 
 <div id="menu">
-    <h1>NEON DODGE</h1>
-    <h2> By Michael Bell </h2>
-    <h3>Choose Difficulty</h3>
-    <button onclick="startGame('easy')">Easy</button><br>
-    <button onclick="startGame('normal')">Normal</button><br>
-    <button onclick="startGame('hard')">Hard</button><br>
-    <button onclick="startGame('insane')">Insane</button>
+<h1>NEON DODGE</h1>
+<div id="loginPanel">
+<input type="text" id="username" placeholder="Enter Username"><br>
+<button onclick="login()">Login</button>
 </div>
+<div id="profile" style="display:none;">
+<h3 id="welcome"></h3>
+<p>Level: <span id="level">0</span> | XP: <span id="xp">0</span></p>
+</div>
+<h3>Choose Difficulty</h3>
+<button onclick="startGame('easy')">Easy</button><br>
+<button onclick="startGame('normal')">Normal</button><br>
+<button onclick="startGame('hard')">Hard</button><br>
+<button onclick="startGame('insane')">Insane</button><br>
+<button onclick="showSkins()">Skins</button>
+</div>
+
+<div id="skinsPanel" style="display:none;color:white;text-align:center;">
+<h3>Choose Skin</h3>
+<div id="skinsButtons"></div>
+<button onclick="closeSkins()">Back</button>
+</div>
+
+<div id="achievementPopup"></div>
 
 <canvas id="game"></canvas>
 
+<audio id="sfxMove" src="https://freesound.org/data/previews/341/341695_624916-lq.mp3"></audio>
+<audio id="sfxHit" src="https://freesound.org/data/previews/198/198841_2859974-lq.mp3"></audio>
+<audio id="sfxSpawn" src="https://freesound.org/data/previews/69/69664_634166-lq.mp3"></audio>
+
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
+let keys={},player,enemies,particles,startTime,gameOver,settings,currentLevel,spawnTimer=0;
+let username="",xp=0,level=1,skin="default",achievements=[];
+const SFX={move:document.getElementById("sfxMove"),hit:document.getElementById("sfxHit"),spawn:document.getElementById("sfxSpawn")};
+const COLORS=["#ffb300","#ff6f00","#ffea00","#ff0000","#ff4081","#ff9100"];
+const DIFFICULTY={easy:{enemySpeed:1,spawnRate:1100},normal:{enemySpeed:1.7,spawnRate:800},hard:{enemySpeed:2.8,spawnRate:500},insane:{enemySpeed:4.5,spawnRate:260}};
+const SKINS=[{name:"default",xp:0},{name:"red",xp:50},{name:"green",xp:100},{name:"blue",xp:150},{name:"triangle",ach:"dodge50"},{name:"diamond",ach:"insaneSurvive"},{name:"orb",xp:300}];
 
-let keys = {};
-let player, enemies, particles;
-let startTime, gameOver, settings, currentLevel;
-let spawnTimer = 0;
+document.addEventListener("keydown",e=>keys[e.key]=true);
+document.addEventListener("keyup",e=>keys[e.key]=false);
+resizeCanvas(); window.addEventListener("resize",resizeCanvas);
 
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => keys[e.key] = false);
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
 
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
-
-
-/* 🌈 COLORS */
-const COLORS = ["#ffb300", "#ff6f00", "#ffea00", "#ff0000", "#ff4081", "#ff9100"];
-
-/* 🎚 DIFFICULTY */
-const DIFFICULTY = {
-    easy:   { enemySpeed: 1,   spawnRate: 1100 },
-    normal: { enemySpeed: 1.7, spawnRate: 800 },
-    hard:   { enemySpeed: 2.8, spawnRate: 500 },
-    insane: { enemySpeed: 4.5, spawnRate: 260 }
-};
-
-/* 🏆 HIGH SCORE HANDLING */
-function getHighScore(level) {
-    return localStorage.getItem("neonScore_" + level) || 0;
-}
-function setHighScore(level, value) {
-    localStorage.setItem("neonScore_" + level, value);
+function login(){
+  username=document.getElementById("username").value.trim();
+  if(!username) return alert("Enter a username!");
+  let data=JSON.parse(localStorage.getItem("neonProfile_"+username)||'{"xp":0,"level":1,"skin":"default","achievements":[]}');
+  xp=data.xp; level=data.level; skin=data.skin; achievements=data.achievements||[];
+  document.getElementById("loginPanel").style.display="none";
+  document.getElementById("profile").style.display="block";
+  document.getElementById("welcome").innerText="Welcome, "+username;
+  document.getElementById("xp").innerText=xp; document.getElementById("level").innerText=level;
 }
 
-/* ▶ START GAME */
-function startGame(level) {
-    currentLevel = level;
-    settings = DIFFICULTY[level];
-    document.getElementById("menu").style.display = "none";
+function saveProfile(){localStorage.setItem("neonProfile_"+username,JSON.stringify({xp,level,skin,achievements})); document.getElementById("xp").innerText=xp; document.getElementById("level").innerText=level;}
 
-    player = { x: canvas.width/2, y: canvas.height/2, size: 22, speed: 5 };
-    enemies = [];
-    particles = [];
-    spawnTimer = 0;
-    gameOver = false;
-    startTime = Date.now();
-
-    requestAnimationFrame(loop);
+function showSkins(){
+  document.getElementById("menu").style.display="none"; document.getElementById("skinsPanel").style.display="block";
+  let container=document.getElementById("skinsButtons"); container.innerHTML="";
+  SKINS.forEach(s=>{
+    let unlocked=(s.xp&&xp>=s.xp)||(s.ach&&achievements.includes(s.ach));
+    let btn=document.createElement("button"); btn.innerText=s.name+(unlocked?"":" 🔒"); 
+    btn.disabled=!unlocked; btn.onclick=()=>{skin=s.name; saveProfile();};
+    container.appendChild(btn);
+  });
 }
 
-/* ENEMY SPAWNER */
-function spawnEnemy() {
-    const size = 22;
+function closeSkins(){document.getElementById("skinsPanel").style.display="none"; document.getElementById("menu").style.display="block";}
 
-    enemies.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size,
-        color: COLORS[Math.floor(Math.random()*COLORS.length)],
-        speed: settings.enemySpeed + Math.random() * 1.1
-    });
+function startGame(level){if(!username){alert("Please login first!"); return;}
+currentLevel=level; settings=DIFFICULTY[level];
+document.getElementById("menu").style.display="none";
+player={x:canvas.width/2,y:canvas.height/2,size:22,speed:5};
+enemies=[]; particles=[]; spawnTimer=0; gameOver=false; startTime=Date.now(); dodgedEnemies=0;
+requestAnimationFrame(loop);}
+
+let dodgedEnemies=0;
+
+function spawnEnemy(){
+  SFX.spawn.play(); const size=22;
+  const patterns=["chase","zigzag","circle"];
+  let pattern=patterns[Math.floor(Math.random()*patterns.length)];
+  let angle=Math.random()*Math.PI*2;
+  enemies.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,size,color:COLORS[Math.floor(Math.random()*COLORS.length)],speed:settings.enemySpeed+Math.random(),pattern,angle,originX:canvas.width/2,originY:canvas.height/2});
 }
 
-/* PARTICLES */
-function emitParticles(x, y, color) {
-    for (let i=0; i<14; i++) {
-        particles.push({
-            x, y,
-            size: 3,
-            vx: (Math.random()*2 - 1)*3,
-            vy: (Math.random()*2 - 1)*3,
-            alpha: 1,
-            color
-        });
-    }
+function emitParticles(x,y,color){for(let i=0;i<14;i++){particles.push({x,y,size:3,vx:(Math.random()*2-1)*3,vy:(Math.random()*2-1)*3,alpha:1,color});}}
+function updateParticles(){particles=particles.filter(p=>p.alpha>0); particles.forEach(p=>{p.x+=p.vx; p.y+=p.vy; p.alpha-=0.03;});}
+
+function movePlayer(){if(keys["ArrowUp"]||keys["w"]){player.y-=player.speed;SFX.move.play();} if(keys["ArrowDown"]||keys["s"]){player.y+=player.speed;SFX.move.play();} if(keys["ArrowLeft"]||keys["a"]){player.x-=player.speed;SFX.move.play();} if(keys["ArrowRight"]||keys["d"]){player.x+=player.speed;SFX.move.play();}
+player.x=Math.max(0,Math.min(canvas.width-player.size,player.x)); player.y=Math.max(0,Math.min(canvas.height-player.size,player.y));}
+
+function updateEnemies(){
+  enemies.forEach((e,i)=>{
+    if(e.pattern=="chase"){let dx=player.x-e.x,dy=player.y-e.y,dist=Math.hypot(dx,dy); e.x+=(dx/dist)*e.speed; e.y+=(dy/dist)*e.speed;}
+    else if(e.pattern=="zigzag"){e.x+=Math.cos(e.angle)*e.speed; e.y+=Math.sin(e.angle)*e.speed; e.angle+=0.05;}
+    else if(e.pattern=="circle"){let radius=100; e.angle+=0.03; e.x=e.originX+Math.cos(e.angle)*radius; e.y=e.originY+Math.sin(e.angle)*radius;}
+    let dx=player.x-e.x,dy=player.y-e.y,dist=Math.hypot(dx,dy);
+    if(dist<player.size){triggerGameOver();}
+    else if(!e.counted && dist>canvas.width){dodgedEnemies++; e.counted=true; checkAchievements();}
+  });
 }
 
-function updateParticles() {
-    particles = particles.filter(p => p.alpha > 0);
-    particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= 0.03;
-    });
+function drawGlowRect(x,y,size,color){ctx.shadowBlur=20; ctx.shadowColor=color; ctx.fillStyle=color; ctx.fillRect(x,y,size,size); ctx.shadowBlur=0;}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color; ctx.fillRect(p.x,p.y,p.size,p.size); ctx.globalAlpha=1;});
+  drawGlowRect(player.x,player.y,player.size,skinColor());
+  enemies.forEach(e=>drawGlowRect(e.x,e.y,e.size,e.color));
+  let score=((Date.now()-startTime)/1000).toFixed(1);
+  ctx.fillStyle="white"; ctx.font="24px Orbitron";
+  ctx.fillText(`Time: ${score}s`,20,40);
+  ctx.fillText(`XP: ${xp} | Level: ${level}`,20,75);
 }
 
-/* PLAYER MOVEMENT */
-function movePlayer() {
-    if (keys["ArrowUp"] || keys["w"]) player.y -= player.speed;
-    if (keys["ArrowDown"] || keys["s"]) player.y += player.speed;
-    if (keys["ArrowLeft"] || keys["a"]) player.x -= player.speed;
-    if (keys["ArrowRight"] || keys["d"]) player.x += player.speed;
+function skinColor(){switch(skin){case"red":return"#ff0000"; case"green":return"#00ff00"; case"blue":return"#00aaff"; case"triangle":return"#ff00ff"; case"diamond":return"#00ffaa"; case"orb":return"#ffff00"; default:return"#00eaff";}}
 
-    player.x = Math.max(0, Math.min(canvas.width - player.size, player.x));
-    player.y = Math.max(0, Math.min(canvas.height - player.size, player.y));
+function triggerGameOver(){
+  if(gameOver) return; gameOver=true;
+  let score=((Date.now()-startTime)/1000).toFixed(1);
+  SFX.hit.play(); emitParticles(player.x,player.y,skinColor());
+  let gainedXP=Math.floor(score*10);
+  xp+=gainedXP; if(xp>=level*100){level++; xp=0;}
+  checkAchievements(true); saveProfile();
+  setTimeout(()=>{alert(`💀 You Died (${currentLevel})\nSurvived: ${score}s\nXP Gained: ${gainedXP}`); location.reload();},700);
 }
 
-/* ENEMY MOVEMENT + COLLISION */
-function updateEnemies() {
-    enemies.forEach(e => {
-        let dx = player.x - e.x;
-        let dy = player.y - e.y;
-        let dist = Math.hypot(dx, dy);
-
-        e.x += (dx / dist) * e.speed;
-        e.y += (dy / dist) * e.speed;
-
-        if (dist < player.size) triggerGameOver();
-    });
+function checkAchievements(gameOver=false){
+  let achieved=false;
+  if(!achievements.includes("survive30") && (Date.now()-startTime)/1000>=30){achievements.push("survive30"); showAchievement("Survived 30s!"); achieved=true;}
+  if(!achievements.includes("dodge50") && dodgedEnemies>=50){achievements.push("dodge50"); showAchievement("Dodged 50 enemies!"); achieved=true;}
+  if(!achievements.includes("insaneSurvive") && gameOver && currentLevel=="insane" && (Date.now()-startTime)/1000>=10){achievements.push("insaneSurvive"); showAchievement("Survived Insane!"); achieved=true;}
+  if(achieved) saveProfile();
 }
 
-/* GLOW DRAWING */
-function drawGlowRect(x, y, size, color) {
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = color;
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, size, size);
-    ctx.shadowBlur = 0;
+function showAchievement(text){
+  let popup=document.getElementById("achievementPopup");
+  popup.innerText="🏆 "+text; popup.style.display="block";
+  setTimeout(()=>{popup.style.display="none";},2000);
 }
 
-/* RENDER */
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // particles
-    particles.forEach(p => {
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, p.size, p.size);
-        ctx.globalAlpha = 1;
-    });
-
-    drawGlowRect(player.x, player.y, player.size, "#00eaff");
-
-    enemies.forEach(e => drawGlowRect(e.x, e.y, e.size, e.color));
-
-    // score
-    let score = ((Date.now() - startTime)/1000).toFixed(1);
-    let high = getHighScore(currentLevel);
-
-    ctx.fillStyle = "white";
-    ctx.font = "24px Orbitron";
-    ctx.fillText(`Time: ${score}s`, 20, 40);
-    ctx.fillText(`High (${currentLevel}): ${high}s`, 20, 75);
-}
-
-/* GAME OVER */
-function triggerGameOver() {
-    if (gameOver) return;
-    gameOver = true;
-
-    let score = ((Date.now() - startTime)/1000).toFixed(1);
-    let high = getHighScore(currentLevel);
-
-    if (score > high) setHighScore(currentLevel, score);
-
-    emitParticles(player.x, player.y, "#00eaff");
-
-    setTimeout(() => {
-        alert(`💀 You Died (${currentLevel})\nSurvived: ${score}s\nHigh Score: ${Math.max(score, high)}s`);
-        location.reload();
-    }, 700);
-}
-
-/* MAIN LOOP */
-function loop() {
-    if (!gameOver) {
-        movePlayer();
-
-        spawnTimer += 16;
-        if (spawnTimer >= settings.spawnRate) {
-            spawnEnemy();
-            spawnTimer = 0;
-        }
-
-        updateEnemies();
-    }
-
-    updateParticles();
-    draw();
-
-    requestAnimationFrame(loop);
-}
+function loop(){if(!gameOver){movePlayer(); spawnTimer+=16; if(spawnTimer>=settings.spawnRate){spawnEnemy(); spawnTimer=0;} updateEnemies();}
+updateParticles(); draw(); requestAnimationFrame(loop);}
 </script>
 
 </body>
 </html>
+
