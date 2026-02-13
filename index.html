@@ -1,232 +1,263 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Pulse Runner X</title>
+<title>Orange Chaos Dash ULTRA</title>
 <style>
-body { margin:0; overflow:hidden; background:#000; font-family:Arial; color:white; }
+body { margin:0; overflow:hidden; background:black; }
 canvas { display:block; }
-#ui { position:absolute; top:20px; left:20px; }
-#menu {
-  position:absolute;
-  top:50%; left:50%;
-  transform:translate(-50%,-50%);
-  text-align:center;
-}
-button {
-  padding:10px 20px;
-  margin:10px;
-  font-size:18px;
-  cursor:pointer;
-}
 </style>
 </head>
 <body>
 
-<div id="menu">
-  <h1>Pulse Runner X</h1>
-  <button onclick="startGame()">Play</button>
-  <button onclick="openShop()">Shop</button>
-</div>
-
-<div id="ui" style="display:none;"></div>
 <canvas id="game"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 
-const ui = document.getElementById("ui");
-const menu = document.getElementById("menu");
+function resizeCanvas(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
 
-let state = "menu";
-let gravityDir = 1;
-let gameSpeed = 6;
+let gravity = 0.8;
+let gameSpeed = 8;
 let score = 0;
-let coins = parseInt(localStorage.getItem("coins")) || 0;
-let highScore = parseInt(localStorage.getItem("highScore")) || 0;
-
-let achievements = JSON.parse(localStorage.getItem("achievements")) || {};
-
-const player = {
-  x:150,
-  y:canvas.height-200,
-  size:40,
-  dy:0,
-  gravity:0.8,
-  jump:-16,
-  jumps:2,
-  dashCD:0,
-  slowEnergy:100,
-  skin:"cyan"
-};
 
 let obstacles = [];
-let particles = [];
+let portals = [];
+
+let gameState = "menu";
+
+let groundHeight = 80;
+let ceilingHeight = 40;
+
+let player = {
+    x: 200,
+    y: 0,
+    size: 50,
+    velocityY: 0,
+    jumps: 0,
+    maxJumps: 2,
+    gravityDirection: 1,
+    rotation: 0
+};
+
+function resetPlayer(){
+    player.y = canvas.height - groundHeight - player.size;
+    player.velocityY = 0;
+    player.jumps = 0;
+    player.gravityDirection = 1;
+    player.rotation = 0;
+}
+
+canvas.addEventListener("click", ()=>{
+    if(gameState !== "playing"){
+        startGame();
+    }
+});
+
+document.addEventListener("keydown", e=>{
+    if(e.code==="Space" && player.jumps<player.maxJumps && gameState==="playing"){
+        player.velocityY = -16 * player.gravityDirection;
+        player.jumps++;
+    }
+});
 
 function startGame(){
-  state="play";
-  menu.style.display="none";
-  ui.style.display="block";
-  resetGame();
+    obstacles = [];
+    portals = [];
+    score = 0;
+    gameSpeed = 8;
+    resetPlayer();
+    gameState="playing";
 }
 
-function openShop(){
-  alert("Shop coming soon: unlock skins & abilities!");
-}
+// Spawn system
+setInterval(()=>{
+    if(gameState==="playing"){
+        let type = Math.random();
+        let spawnX = canvas.width + 300; // FAR SPAWN
 
-function resetGame(){
-  gravityDir=1;
-  gameSpeed=6;
-  score=0;
-  obstacles=[];
-  particles=[];
-}
+        if(type < 0.5){
+            obstacles.push({type:"spike", x:spawnX, counted:false});
+        } else if(type < 0.8){
+            obstacles.push({type:"block", x:spawnX, counted:false});
+        } else {
+            obstacles.push({type:"saw", x:spawnX, counted:false, angle:0});
+        }
+    }
+}, 1400);
 
-function spawnObstacle(){
-  const height = Math.random()*120+40;
-  obstacles.push({
-    x:canvas.width,
-    y: gravityDir===1 ? canvas.height-height-100 : 100,
-    w:40,
-    h:height
-  });
-}
-setInterval(spawnObstacle,1000);
-
-document.addEventListener("keydown",e=>{
-  if(state!=="play") return;
-
-  if(e.code==="Space" && player.jumps>0){
-    player.dy = player.jump*gravityDir;
-    player.jumps--;
-  }
-  if(e.code==="ShiftLeft" && player.dashCD<=0){
-    player.x+=150;
-    player.dashCD=80;
-  }
-  if(e.code==="KeyG") gravityDir*=-1;
-  if(e.code==="KeyE" && player.slowEnergy>0) gameSpeed=3;
-});
-
-document.addEventListener("keyup",e=>{
-  if(e.code==="KeyE") gameSpeed=6;
-});
-
-canvas.addEventListener("touchstart",()=>{
-  if(state==="play" && player.jumps>0){
-    player.dy = player.jump*gravityDir;
-    player.jumps--;
-  }
-});
+setInterval(()=>{
+    if(gameState==="playing"){
+        portals.push({x:canvas.width + 500});
+    }
+}, 6000);
 
 function update(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  if(state==="play"){
-    gameSpeed+=0.001;
-    score++;
-    coins+=0.05;
+    // 🌈 Animated Background
+    let gradient = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+    gradient.addColorStop(0, `hsl(${score*10 % 360},80%,60%)`);
+    gradient.addColorStop(1, `hsl(${(score*10+180)%360},70%,30%)`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    if(gameSpeed>6 && player.slowEnergy>0) player.slowEnergy-=0.05;
-    else if(player.slowEnergy<100) player.slowEnergy+=0.1;
+    if(gameState==="playing"){
+        gameSpeed += 0.003;
 
-    player.dy+=player.gravity*gravityDir;
-    player.y+=player.dy;
+        // Floor & ceiling
+        ctx.fillStyle="#111";
+        ctx.fillRect(0,canvas.height-groundHeight,canvas.width,groundHeight);
+        ctx.fillRect(0,0,canvas.width,ceilingHeight);
 
-    let ground = gravityDir===1 ? canvas.height-100 : 100;
+        // Gravity
+        player.velocityY += gravity * player.gravityDirection;
+        player.y += player.velocityY;
 
-    if((gravityDir===1 && player.y>=ground-player.size) ||
-       (gravityDir===-1 && player.y<=ground)){
-        player.y = gravityDir===1 ? ground-player.size : ground;
-        player.dy=0;
-        player.jumps=2;
+        if(player.gravityDirection===1 &&
+           player.y >= canvas.height-groundHeight-player.size){
+            player.y = canvas.height-groundHeight-player.size;
+            player.jumps=0;
+        }
+
+        if(player.gravityDirection===-1 &&
+           player.y <= ceilingHeight){
+            player.y = ceilingHeight;
+            player.jumps=0;
+        }
+
+        // PLAYER DRAW (rotates when flipped)
+        ctx.save();
+        ctx.translate(player.x+player.size/2, player.y+player.size/2);
+        ctx.rotate(player.rotation);
+        ctx.fillStyle="orange";
+        ctx.fillRect(-player.size/2,-player.size/2,player.size,player.size);
+
+        ctx.fillStyle="red";
+        ctx.fillRect(-15,-10,10,10);
+        ctx.fillRect(5,-10,10,10);
+        ctx.restore();
+
+        // Obstacles
+        obstacles.forEach(obs=>{
+            obs.x -= gameSpeed;
+
+            let baseY = player.gravityDirection===1 ?
+                canvas.height-groundHeight :
+                ceilingHeight;
+
+            ctx.fillStyle="black";
+
+            if(obs.type==="spike"){
+                ctx.beginPath();
+                if(player.gravityDirection===1){
+                    ctx.moveTo(obs.x, baseY);
+                    ctx.lineTo(obs.x+25, baseY-50);
+                    ctx.lineTo(obs.x+50, baseY);
+                } else {
+                    ctx.moveTo(obs.x, baseY);
+                    ctx.lineTo(obs.x+25, baseY+50);
+                    ctx.lineTo(obs.x+50, baseY);
+                }
+                ctx.fill();
+            }
+
+            if(obs.type==="block"){
+                ctx.fillRect(obs.x,
+                    player.gravityDirection===1 ? baseY-60 : baseY,
+                    60,60);
+            }
+
+            if(obs.type==="saw"){
+                obs.angle+=0.2;
+                ctx.save();
+                ctx.translate(obs.x+30,
+                    player.gravityDirection===1 ? baseY-70 : baseY+70);
+                ctx.rotate(obs.angle);
+                ctx.beginPath();
+                for(let i=0;i<8;i++){
+                    ctx.lineTo(0,30);
+                    ctx.rotate(Math.PI/4);
+                    ctx.lineTo(0,10);
+                    ctx.rotate(Math.PI/4);
+                }
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Score
+            if(!obs.counted && obs.x+60 < player.x){
+                score++;
+                obs.counted=true;
+            }
+
+            // Basic collision box
+            if(player.x < obs.x+60 &&
+               player.x+player.size > obs.x){
+                if(player.y+player.size > 
+                   (player.gravityDirection===1 ? canvas.height-groundHeight-60 : ceilingHeight) &&
+                   player.y < 
+                   (player.gravityDirection===1 ? canvas.height-groundHeight : ceilingHeight+60)){
+                    gameState="gameover";
+                }
+            }
+        });
+
+        // Portal (ring)
+        portals.forEach((portal,i)=>{
+            portal.x -= gameSpeed;
+
+            ctx.beginPath();
+            ctx.arc(portal.x+40, canvas.height/2, 40, 0, Math.PI*2);
+            ctx.strokeStyle="purple";
+            ctx.lineWidth=8;
+            ctx.shadowBlur=25;
+            ctx.shadowColor="purple";
+            ctx.stroke();
+            ctx.shadowBlur=0;
+
+            if(player.x < portal.x+80 &&
+               player.x+player.size > portal.x &&
+               player.y < canvas.height/2+40 &&
+               player.y+player.size > canvas.height/2-40){
+                player.gravityDirection *= -1;
+                player.rotation += Math.PI;
+                portals.splice(i,1);
+            }
+        });
+
+        // Score display
+        ctx.fillStyle="white";
+        ctx.font="30px Arial";
+        ctx.fillText("Score: "+score,40,50);
     }
 
-    if(player.dashCD>0) player.dashCD--;
+    // MENU / GAME OVER
+    if(gameState!=="playing"){
+        ctx.fillStyle="rgba(0,0,0,0.6)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    ctx.fillStyle="#222";
-    ctx.fillRect(0,canvas.height-100,canvas.width,100);
-    ctx.fillRect(0,0,canvas.width,100);
+        ctx.fillStyle="white";
+        ctx.font="80px Arial";
+        ctx.fillText("PLAY",canvas.width/2-120,canvas.height/2);
 
-    particles.push({
-      x:player.x,
-      y:player.y+player.size/2,
-      size:Math.random()*5+2,
-      life:30
-    });
+        if(gameState==="gameover"){
+            ctx.font="40px Arial";
+            ctx.fillText("Final Score: "+score,
+                canvas.width/2-150,canvas.height/2+70);
+        }
+    }
 
-    particles.forEach((p,i)=>{
-      p.x-=2;
-      p.life--;
-      ctx.fillStyle=player.skin;
-      ctx.globalAlpha=p.life/30;
-      ctx.fillRect(p.x,p.y,p.size,p.size);
-      ctx.globalAlpha=1;
-      if(p.life<=0) particles.splice(i,1);
-    });
-
-    ctx.fillStyle=player.skin;
-    ctx.save();
-    ctx.translate(player.x+player.size/2,player.y+player.size/2);
-    ctx.rotate(score*0.02);
-    ctx.fillRect(-player.size/2,-player.size/2,player.size,player.size);
-    ctx.restore();
-
-    ctx.fillStyle="red";
-    obstacles.forEach((o,i)=>{
-      o.x-=gameSpeed;
-      ctx.fillRect(o.x,o.y,o.w,o.h);
-
-      if(player.x<o.x+o.w &&
-         player.x+player.size>o.x &&
-         player.y<o.y+o.h &&
-         player.y+player.size>o.y){
-          gameOver();
-      }
-
-      if(o.x<-50) obstacles.splice(i,1);
-    });
-
-    checkAchievements();
-
-    ui.innerHTML=`
-      Score: ${score}<br>
-      High Score: ${highScore}<br>
-      Coins: ${Math.floor(coins)}<br>
-      Slow Energy: ${Math.floor(player.slowEnergy)}
-    `;
-  }
-
-  requestAnimationFrame(update);
+    requestAnimationFrame(update);
 }
 
-function gameOver(){
-  if(score>highScore){
-    highScore=score;
-    localStorage.setItem("highScore",highScore);
-  }
-  localStorage.setItem("coins",Math.floor(coins));
-  localStorage.setItem("achievements",JSON.stringify(achievements));
-  state="menu";
-  menu.style.display="block";
-  ui.style.display="none";
-}
-
-function checkAchievements(){
-  if(score>1000 && !achievements["1000"]){
-    achievements["1000"]=true;
-    alert("Achievement Unlocked: 1000 Score!");
-  }
-  if(coins>500 && !achievements["rich"]){
-    achievements["rich"]=true;
-    alert("Achievement Unlocked: 500 Coins!");
-  }
-}
-
+resetPlayer();
 update();
 </script>
+
 </body>
 </html>
