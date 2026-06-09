@@ -1,295 +1,510 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Orange Chaos Dash ULTRA</title>
-<style>
-body { margin:0; overflow:hidden; background:black; }
-canvas { display:block; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nathan's Burger Run: Evolution</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #111;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+        h1 { margin: 0; font-size: 24px; color: #ffcc00; }
+        .stat { font-size: 18px; margin: 3px 0; font-weight: bold; }
+        
+        /* Menu System overlay tabs */
+        .menu-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            background: rgba(15, 10, 25, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            border: 3px solid #ffcc00;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
+            display: none;
+            z-index: 20;
+            width: 400px;
+            text-align: center;
+        }
+        
+        #main-menu { display: block; } /* Start with main menu */
+
+        button {
+            background: #ffcc00;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 8px;
+            transition: 0.2s;
+            color: #111;
+        }
+        button:hover { background: #ffea00; transform: scale(1.05); }
+        button:disabled { background: #555; color: #aaa; cursor: not-allowed; transform: none; }
+
+        .shop-item, .inv-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .locked { color: #ff3333; font-style: italic; font-size: 14px;}
+        .active-equip { border: 2px solid #00ffcc; background: rgba(0,255,204,0.1); }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-<canvas id="game"></canvas>
+    <div id="ui-container">
+        <h1>Nathan's Burger Run 🍔</h1>
+        <div class="stat">Score: <span id="score">0</span></div>
+        <div class="stat">Size Level: <span id="size-level">1.0</span>x</div>
+        <div class="stat">Player Level: <span id="player-level">1</span> (XP: <span id="player-xp">0</span>/100)</div>
+        <div class="stat">Banked Burgers: <span id="wallet-burgers">0</span></div>
+    </div>
 
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+    <div id="main-menu" class="menu-panel">
+        <h1 style="font-size: 36px; color: #ffcc00; margin-bottom: 20px;">BURGER RUN</h1>
+        <p>Control Nathan, grow massive, and level up your burger empire.</p>
+        <button onclick="startGame()" style="font-size: 22px; width: 80%;">RUN!</button>
+        <br>
+        <button onclick="openTab('shop-menu')">🛒 Upgrades Shop</button>
+        <button onclick="openTab('inventory-menu')">🎒 Equip Burgers</button>
+    </div>
 
-function resizeCanvas(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
+    <div id="shop-menu" class="menu-panel">
+        <h2>Upgrades Shop 🛒</h2>
+        <p>Spend collected burgers on permanent perks:</p>
+        
+        <div class="shop-item">
+            <div>
+                <strong>Light Digest (Max Speed Cap)</strong><br>
+                <small>Slows down acceleration rate</small>
+            </div>
+            <button id="up-speed-btn" onclick="buyUpgrade('speed')">Lvl <span id="speed-lvl">0</span><br><span id="speed-cost">10</span> 🍔</button>
+        </div>
 
-let gravity = 0.8;
-let baseSpeed = 8;
-let gameSpeed = baseSpeed;
+        <div class="shop-item">
+            <div>
+                <strong>Greedy Bite (Double Points)</strong><br>
+                <small>Chance to earn double points per bite</small>
+            </div>
+            <button id="up-points-btn" onclick="buyUpgrade('points')">Lvl <span id="points-lvl">0</span><br><span id="points-cost">15</span> 🍔</button>
+        </div>
 
-let score = 0;
-let level = 1;
-let unlockedLevel = 1;
-let maxLevel = 5;
+        <button onclick="openTab('main-menu')" style="background:#888;">Back</button>
+    </div>
 
-let obstacles = [];
-let portals = [];
+    <div id="inventory-menu" class="menu-panel">
+        <h2>Equip Burgers 🎒</h2>
+        <p>Unlock new recipes by increasing your Player Level!</p>
+        <div id="inventory-list"></div>
+        <button onclick="openTab('main-menu')" style="background:#888; margin-top:15px;">Back</button>
+    </div>
 
-let gameState = "menu";
+    <div id="game-over-screen" class="menu-panel">
+        <h1 style="font-size: 40px; color: #ff3333; margin:0;">GAME OVER</h1>
+        <p style="font-size: 18px;">Nathan hit an obstacle or passed out full!</p>
+        <p style="font-size: 22px; color: #ffcc00; margin: 10px 0;">Run Score: <span id="final-score">0</span></p>
+        <p style="font-size: 16px; color: #66ff66;">Burgers Collected this run: +<span id="run-burgers">0</span></p>
+        <button onclick="startGame()" style="font-size: 20px;">Play Again</button>
+        <button onclick="openTab('main-menu')" style="background:#888;">Main Menu</button>
+    </div>
 
-let groundHeight = 80;
-let ceilingHeight = 40;
+    <script>
+        // --- Save System Variables ---
+        let saveData = {
+            totalBurgers: 0,
+            level: 1,
+            xp: 0,
+            upgrades: { speed: 0, points: 0 },
+            equippedBurger: "classic"
+        };
 
-let player = {
-    x: 200,
-    y: 0,
-    size: 50,
-    velocityY: 0,
-    jumps: 0,
-    maxJumps: 2,
-    gravityDirection: 1,
-    rotation: 0
-};
+        // Burger Registry Data
+        const burgerTypes = {
+            classic: { name: "Classic Hamburger", reqLvl: 1, color: 0xcd853f, glow: false },
+            cheese:  { name: "Double Cheeseburger", reqLvl: 3, color: 0xffa500, glow: false },
+            mega:    { name: "Mega Meat Monster", reqLvl: 5, color: 0x8b4513, glow: false },
+            cosmic:  { name: "Cosmic Nebula Patty", reqLvl: 8, color: 0x9400d3, glow: true }
+        };
 
-function resetPlayer(){
-    player.y = canvas.height - groundHeight - player.size;
-    player.velocityY = 0;
-    player.jumps = 0;
-    player.gravityDirection = 1;
-    player.rotation = 0;
-}
+        // --- Engine & Mechanics ---
+        let scene, camera, renderer;
+        let nathan, track;
+        let items = [];
+        let runScore = 0;
+        let runBurgersCollected = 0;
+        let nathanSize = 1.0;
+        let gameSpeed = 0.15;
+        let isPlaying = false;
+        let spawnIntervalId;
+        
+        const laneWidth = 3;
+        const lanes = [-laneWidth, 0, laneWidth];
+        let currentLane = 1;
+        let targetX = lanes[currentLane];
 
-canvas.addEventListener("click", ()=>{
-    if(gameState !== "playing"){
-        startGame();
-    }
-});
-
-document.addEventListener("keydown", e=>{
-    if(e.code==="Space" && player.jumps<player.maxJumps && gameState==="playing"){
-        player.velocityY = -16 * player.gravityDirection;
-        player.jumps++;
-    }
-});
-
-function startGame(){
-    obstacles = [];
-    portals = [];
-    score = 0;
-    gravity = 0.8 + (level-1)*0.15;
-    gameSpeed = baseSpeed + (level-1)*2;
-    resetPlayer();
-    gameState="playing";
-}
-
-// 🎯 LEVEL UNLOCK SYSTEM
-function checkLevelUnlock(){
-    if(score >= 100 && level < maxLevel){
-        unlockedLevel = Math.max(unlockedLevel, level+1);
-        level++;
-        gameState = "levelup";
-        setTimeout(()=>{
-            startGame();
-        },2000);
-    }
-}
-
-// Spawn System (gets faster each level)
-function spawnObstacle(){
-    if(gameState==="playing"){
-        let type = Math.random();
-        let spawnX = canvas.width + 300;
-
-        if(type < 0.5){
-            obstacles.push({type:"spike", x:spawnX, counted:false});
-        } else if(type < 0.8){
-            obstacles.push({type:"block", x:spawnX, counted:false});
-        } else {
-            obstacles.push({type:"saw", x:spawnX, counted:false, angle:0});
-        }
-    }
-}
-
-function spawnPortal(){
-    if(gameState==="playing"){
-        portals.push({x:canvas.width + 500});
-    }
-}
-
-setInterval(()=>{
-    spawnObstacle();
-}, 1400);
-
-setInterval(()=>{
-    spawnPortal();
-}, 6000);
-
-function update(){
-
-    // 🌈 Animated Background
-    let gradient = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
-    gradient.addColorStop(0, `hsl(${score*10 % 360},80%,60%)`);
-    gradient.addColorStop(1, `hsl(${(score*10+180)%360},70%,30%)`);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    if(gameState==="playing"){
-
-        gameSpeed += 0.003 + (level*0.001);
-
-        ctx.fillStyle="#111";
-        ctx.fillRect(0,canvas.height-groundHeight,canvas.width,groundHeight);
-        ctx.fillRect(0,0,canvas.width,ceilingHeight);
-
-        player.velocityY += gravity * player.gravityDirection;
-        player.y += player.velocityY;
-
-        if(player.gravityDirection===1 &&
-           player.y >= canvas.height-groundHeight-player.size){
-            player.y = canvas.height-groundHeight-player.size;
-            player.jumps=0;
+        // --- Core Load / Save Architecture ---
+        function loadGame() {
+            const saved = localStorage.getItem('nathan_runner_save');
+            if (saved) {
+                try { saveData = Object.assign(saveData, JSON.parse(saved)); } catch(e) {}
+            }
+            updateUIStrings();
         }
 
-        if(player.gravityDirection===-1 &&
-           player.y <= ceilingHeight){
-            player.y = ceilingHeight;
-            player.jumps=0;
+        function saveGame() {
+            localStorage.setItem('nathan_runner_save', JSON.stringify(saveData));
+            updateUIStrings();
         }
 
-        // PLAYER
-        ctx.save();
-        ctx.translate(player.x+player.size/2, player.y+player.size/2);
-        ctx.rotate(player.rotation);
-        ctx.fillStyle="orange";
-        ctx.fillRect(-player.size/2,-player.size/2,player.size,player.size);
-        ctx.fillStyle="red";
-        ctx.fillRect(-15,-10,10,10);
-        ctx.fillRect(5,-10,10,10);
-        ctx.restore();
+        function updateUIStrings() {
+            document.getElementById("wallet-burgers").innerText = saveData.totalBurgers;
+            document.getElementById("player-level").innerText = saveData.level;
+            document.getElementById("player-xp").innerText = saveData.xp;
+            
+            // Update Shop costs
+            const sCost = (saveData.upgrades.speed + 1) * 10;
+            const pCost = (saveData.upgrades.points + 1) * 15;
+            document.getElementById("speed-lvl").innerText = saveData.upgrades.speed;
+            document.getElementById("speed-cost").innerText = sCost;
+            document.getElementById("up-speed-btn").disabled = saveData.totalBurgers < sCost || saveData.upgrades.speed >= 5;
+            
+            document.getElementById("points-lvl").innerText = saveData.upgrades.points;
+            document.getElementById("points-cost").innerText = pCost;
+            document.getElementById("up-points-btn").disabled = saveData.totalBurgers < pCost || saveData.upgrades.points >= 5;
+        }
 
-        // OBSTACLES
-        obstacles.forEach(obs=>{
-            obs.x -= gameSpeed;
+        // --- UI Navigation ---
+        function openTab(tabId) {
+            document.querySelectorAll('.menu-panel').forEach(p => p.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+            if(tabId === 'inventory-menu') renderInventory();
+            updateUIStrings();
+        }
 
-            let baseY = player.gravityDirection===1 ?
-                canvas.height-groundHeight :
-                ceilingHeight;
-
-            ctx.fillStyle="black";
-
-            if(obs.type==="spike"){
-                ctx.beginPath();
-                if(player.gravityDirection===1){
-                    ctx.moveTo(obs.x, baseY);
-                    ctx.lineTo(obs.x+25, baseY-50);
-                    ctx.lineTo(obs.x+50, baseY);
+        function renderInventory() {
+            const container = document.getElementById("inventory-list");
+            container.innerHTML = "";
+            
+            for (let id in burgerTypes) {
+                let b = burgerTypes[id];
+                let isLocked = saveData.level < b.reqLvl;
+                let isEquipped = saveData.equippedBurger === id;
+                
+                let div = document.createElement('div');
+                div.className = `inv-item ${isEquipped ? 'active-equip' : ''}`;
+                
+                let info = `<div><strong>${b.name}</strong><br>`;
+                if (isLocked) {
+                    info += `<span class="locked">Requires Level ${b.reqLvl}</span></div>`;
                 } else {
-                    ctx.moveTo(obs.x, baseY);
-                    ctx.lineTo(obs.x+25, baseY+50);
-                    ctx.lineTo(obs.x+50, baseY);
+                    info += `<small>Status: ${isEquipped ? 'Equipped' : 'Unlocked'}</small></div>`;
                 }
-                ctx.fill();
-            }
+                div.innerHTML = info;
 
-            if(obs.type==="block"){
-                ctx.fillRect(obs.x,
-                    player.gravityDirection===1 ? baseY-60 : baseY,
-                    60,60);
-            }
-
-            if(obs.type==="saw"){
-                obs.angle+=0.2;
-                ctx.save();
-                ctx.translate(obs.x+30,
-                    player.gravityDirection===1 ? baseY-70 : baseY+70);
-                ctx.rotate(obs.angle);
-                ctx.beginPath();
-                for(let i=0;i<8;i++){
-                    ctx.lineTo(0,30);
-                    ctx.rotate(Math.PI/4);
-                    ctx.lineTo(0,10);
-                    ctx.rotate(Math.PI/4);
+                if (!isLocked && !isEquipped) {
+                    let btn = document.createElement('button');
+                    btn.innerText = "Equip";
+                    btn.onclick = () => {
+                        saveData.equippedBurger = id;
+                        saveGame();
+                        renderInventory();
+                    };
+                    div.appendChild(btn);
                 }
-                ctx.fill();
-                ctx.restore();
+                container.appendChild(div);
             }
+        }
 
-            if(!obs.counted && obs.x+60 < player.x){
-                score++;
-                obs.counted=true;
-                checkLevelUnlock();
-            }
-
-            if(player.x < obs.x+60 &&
-               player.x+player.size > obs.x){
-                if(player.y+player.size > 
-                   (player.gravityDirection===1 ? canvas.height-groundHeight-60 : ceilingHeight) &&
-                   player.y < 
-                   (player.gravityDirection===1 ? canvas.height-groundHeight : ceilingHeight+60)){
-                    gameState="gameover";
+        // --- Upgrades Mechanics ---
+        function buyUpgrade(type) {
+            if (type === 'speed') {
+                let cost = (saveData.upgrades.speed + 1) * 10;
+                if (saveData.totalBurgers >= cost && saveData.upgrades.speed < 5) {
+                    saveData.totalBurgers -= cost;
+                    saveData.upgrades.speed++;
                 }
+            } else if (type === 'points') {
+                let cost = (saveData.upgrades.points + 1) * 15;
+                if (saveData.totalBurgers >= cost && saveData.upgrades.points < 5) {
+                    saveData.totalBurgers -= cost;
+                    saveData.upgrades.points++;
+                }
+            }
+            saveGame();
+        }
+
+        // --- Controls Handling ---
+        window.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+                if (currentLane > 0) { currentLane--; targetX = lanes[currentLane]; }
+            }
+            if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+                if (currentLane < 2) { currentLane++; targetX = lanes[currentLane]; }
             }
         });
 
-        // PORTALS
-        portals.forEach((portal,i)=>{
-            portal.x -= gameSpeed;
+        // --- Three.js Environment Initialization ---
+        function initEngine() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0e051c);
+            scene.fog = new THREE.FogExp2(0x0e051c, 0.018);
 
-            ctx.beginPath();
-            ctx.arc(portal.x+40, canvas.height/2, 40, 0, Math.PI*2);
-            ctx.strokeStyle="purple";
-            ctx.lineWidth=8;
-            ctx.shadowBlur=25;
-            ctx.shadowColor="purple";
-            ctx.stroke();
-            ctx.shadowBlur=0;
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 8);
+            camera.lookAt(0, 1, -5);
 
-            if(player.x < portal.x+80 &&
-               player.x+player.size > portal.x &&
-               player.y < canvas.height/2+40 &&
-               player.y+player.size > canvas.height/2-40){
-                player.gravityDirection *= -1;
-                player.rotation += Math.PI;
-                portals.splice(i,1);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 15, 10);
+            scene.add(dirLight);
+
+            createTrack();
+            createNathan();
+            
+            // Loop engine graphics render independent of playing status
+            setInterval(() => { if (isPlaying) spawnItem(); }, 850);
+            animate();
+        }
+
+        function createTrack() {
+            const trackGeo = new THREE.BoxGeometry(10, 0.5, 300);
+            const trackMat = new THREE.MeshStandardMaterial({ color: 0x221a30, roughness: 0.5 });
+            track = new THREE.Mesh(trackGeo, trackMat);
+            track.position.set(0, -0.25, -130);
+            scene.add(track);
+
+            for (let i = 0; i < 20; i++) {
+                const lineGeo = new THREE.BoxGeometry(0.1, 0.02, 5);
+                const lineMat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+                const l1 = new THREE.Mesh(lineGeo, lineMat); l1.position.set(-1.5, 0.02, -i * 15);
+                const l2 = new THREE.Mesh(lineGeo, lineMat); l2.position.set(1.5, 0.02, -i * 15);
+                scene.add(l1, l2);
             }
+        }
+
+        function createNathan() {
+            nathan = new THREE.Group();
+            const headGeo = new THREE.SphereGeometry(0.3, 16, 16);
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+            const head = new THREE.Mesh(headGeo, skinMat); head.position.y = 1.7; nathan.add(head);
+
+            const bodyGeo = new THREE.SphereGeometry(0.6, 16, 16);
+            const shirtMat = new THREE.MeshStandardMaterial({ color: 0x0077ff });
+            const body = new THREE.Mesh(bodyGeo, shirtMat); body.position.y = 0.9;
+            body.name = "belly"; 
+            nathan.add(body);
+
+            const legGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.5);
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const lLeg = new THREE.Mesh(legGeo, pantsMat); lLeg.position.set(-0.25, 0.25, 0);
+            const rLeg = new THREE.Mesh(legGeo, pantsMat); rLeg.position.set(0.25, 0.25, 0);
+            nathan.add(lLeg, rLeg);
+
+            scene.add(nathan);
+        }
+
+        // --- Custom Dynamic Burger Generation ---
+        function buildDynamicBurger(burgerId) {
+            const config = burgerTypes[burgerId] || burgerTypes.classic;
+            const burgerGroup = new THREE.Group();
+            
+            // Bun Top (Color modified by equipped variant skin choice)
+            const topGeo = new THREE.SphereGeometry(0.3, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+            const bunMat = new THREE.MeshStandardMaterial({ 
+                color: config.color, 
+                emissive: config.glow ? config.color : 0x000000,
+                emissiveIntensity: 0.3 
+            });
+            const topBun = new THREE.Mesh(topGeo, bunMat);
+            topBun.position.y = 0.16;
+            topBun.scale.set(1, 0.6, 1);
+            
+            // Add custom layers dynamically depending on how premium the burger option is
+            let meatCount = burgerId === 'mega' ? 3 : 1;
+            for(let m=0; m < meatCount; m++){
+                const meatGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.08, 12);
+                const meatMat = new THREE.MeshStandardMaterial({ color: 0x4a2c11 });
+                const meat = new THREE.Mesh(meatGeo, meatMat);
+                meat.position.y = 0.04 + (m * 0.09);
+                burgerGroup.add(meat);
+            }
+
+            if(burgerId !== 'classic') { // Add visible cheese layers to upgrades
+                const cheeseGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.02, 12);
+                const cheeseMat = new THREE.MeshStandardMaterial({ color: 0xffcc00 });
+                const cheese = new THREE.Mesh(cheeseGeo, cheeseMat);
+                cheese.position.y = 0.12;
+                burgerGroup.add(cheese);
+            }
+
+            const botGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.08, 12);
+            const botBun = new THREE.Mesh(botGeo, bunMat);
+            burgerGroup.add(topBun, botBun);
+            
+            burgerGroup.type = "burger";
+            return burgerGroup;
+        }
+
+        function spawnItem() {
+            const lane = lanes[Math.floor(Math.random() * lanes.length)];
+            const isBurger = Math.random() > 0.35;
+            let item;
+
+            if (isBurger) {
+                // Instantiates the precise burger equipped in save profiles
+                item = buildDynamicBurger(saveData.equippedBurger);
+                item.position.set(lane, 0.35, -60);
+            } else {
+                const obsGeo = new THREE.ConeGeometry(0.4, 0.9, 5);
+                const obsMat = new THREE.MeshStandardMaterial({ color: 0xff3355, emissive: 0x550000 });
+                item = new THREE.Mesh(obsGeo, obsMat);
+                item.position.set(lane, 0.45, -60);
+                item.type = "hazard";
+            }
+            scene.add(item);
+            items.push(item);
+        }
+
+        // --- Live Gameplay Engine Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isPlaying) return;
+
+            nathan.position.x += (targetX - nathan.position.x) * 0.25;
+            nathan.position.y = Math.abs(Math.sin(Date.now() * 0.012)) * 0.18;
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.position.z += gameSpeed;
+                item.rotation.y += 0.04;
+
+                let hitDistance = nathan.position.distanceTo(item.position);
+                let threshold = 0.75 * (nathanSize * 0.65);
+
+                if (hitDistance < threshold) {
+                    if (item.type === "burger") {
+                        runBurgersCollected++;
+                        
+                        // Points configuration algorithm + passive upgrade bonuses
+                        let pointGain = 10;
+                        let chance = saveData.upgrades.points * 0.15; // up to 75% double point odds
+                        if (Math.random() < chance) pointGain *= 2;
+
+                        runScore += pointGain;
+                        nathanSize += 0.14;
+
+                        // Mitigate running speed increases via speed dampener upgrade levels
+                        let speedDampenerFactor = 0.007 - (saveData.upgrades.speed * 0.0012);
+                        gameSpeed += Math.max(0.001, speedDampenerFactor);
+
+                        let belly = nathan.getObjectByName("belly");
+                        if (belly) belly.scale.set(nathanSize, 1.0, nathanSize);
+
+                        document.getElementById("score").innerText = runScore;
+                        document.getElementById("size-level").innerText = nathanSize.toFixed(1);
+                    } else {
+                        triggerGameOver();
+                    }
+                    scene.remove(item);
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                if (item.position.z > 10) {
+                    scene.remove(item);
+                    items.splice(i, 1);
+                }
+            }
+            renderer.render(scene, camera);
+        }
+
+        // --- Core Game Flow Triggers ---
+        function startGame() {
+            document.querySelectorAll('.menu-panel').forEach(p => p.style.display = 'none');
+            
+            // Clean board structures completely
+            items.forEach(it => scene.remove(it));
+            items = [];
+
+            // Reset dynamic metrics
+            runScore = 0;
+            runBurgersCollected = 0;
+            nathanSize = 1.0;
+            gameSpeed = 0.16;
+            currentLane = 1;
+            targetX = lanes[currentLane];
+
+            let belly = nathan.getObjectByName("belly");
+            if (belly) belly.scale.set(1,1,1);
+
+            document.getElementById("score").innerText = "0";
+            document.getElementById("size-level").innerText = "1.0";
+            
+            isPlaying = true;
+        }
+
+        function triggerGameOver() {
+            isPlaying = false;
+            
+            // Award Progression Metrics securely into local files
+            saveData.totalBurgers += runBurgersCollected;
+            
+            // XP formula (Gain XP corresponding directly to score performance)
+            saveData.xp += Math.floor(runScore / 5);
+            while (saveData.xp >= 100) {
+                saveData.xp -= 100;
+                saveData.level++;
+            }
+
+            saveGame();
+
+            document.getElementById("final-score").innerText = runScore;
+            document.getElementById("run-burgers").innerText = runBurgersCollected;
+            openTab('game-over-screen');
+        }
+
+        // Window Startup Hooks
+        window.onload = () => {
+            loadGame();
+            initEngine();
+        };
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        ctx.fillStyle="white";
-        ctx.font="30px Arial";
-        ctx.fillText("Score: "+score,40,50);
-        ctx.fillText("Level: "+level,40,90);
-    }
-
-    // MENU / GAME OVER / LEVEL UP
-    if(gameState!=="playing"){
-        ctx.fillStyle="rgba(0,0,0,0.6)";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-
-        ctx.fillStyle="white";
-        ctx.font="70px Arial";
-
-        if(gameState==="menu"){
-            ctx.fillText("CLICK TO PLAY",canvas.width/2-200,canvas.height/2);
-        }
-
-        if(gameState==="gameover"){
-            ctx.fillText("GAME OVER",canvas.width/2-170,canvas.height/2);
-            ctx.font="40px Arial";
-            ctx.fillText("Final Score: "+score,
-                canvas.width/2-120,canvas.height/2+60);
-        }
-
-        if(gameState==="levelup"){
-            ctx.fillText("LEVEL "+level+" UNLOCKED!",
-                canvas.width/2-250,canvas.height/2);
-        }
-    }
-
-    requestAnimationFrame(update);
-}
-
-resetPlayer();
-update();
-</script>
-
+    </script>
 </body>
 </html>
